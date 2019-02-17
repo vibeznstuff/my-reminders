@@ -1,0 +1,5 @@
+**/data
+**/databases
+*config.json
+test_script.py
+asana_dailies.py
