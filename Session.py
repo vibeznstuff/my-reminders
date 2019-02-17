@@ -67,7 +67,3 @@ class Session:
 					new_due_date = str(new_due_date)[0:10]
 					self.client.tasks.update(task['id'],{'due_on':new_due_date})
 			
-
-sess = Session("config.json")
-#sess.create_task("Another test please delete me",5)
-sess.update_due_dates(7)
