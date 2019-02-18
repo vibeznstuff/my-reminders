@@ -8,6 +8,17 @@ import json
 class Session:
 	
 	# Initiates a Session object for modifying Asana project
+	# The Session gets initialized using a JSON config file
+	# which contains the relevent details about the Asana
+	# project you wish to manipulate
+	# 
+	# JSON Parameters:
+	#	"access_token": Asana access token (String)
+	#	"workspace_name": Asana workspace name (String)
+	#	"project_name": Asana Project name (String)
+	#	"late_threshold": Integer which flags tasks which are
+	#					  'Real Late' if their due date was this
+	#					  number of days old.
 	def __init__(self,session_config_file):
 		session = json.load(open(session_config_file))
 		
