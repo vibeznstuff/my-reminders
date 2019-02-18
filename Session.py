@@ -23,19 +23,37 @@ class Session:
 		
 		self.wksp_id = workspace['id']
 		self.proj_id = project_id
+		
+	# Gets section ID by name
+	def get_section_id(self,section_name):
+		sections = self.client.sections.find_by_project(self.proj_id)
+		section = [x for x in sections if x['name'].upper()==section_name.upper()][0]
+		return section['id']
 	
 	# Creates an asana task with a due date
 	# 	task_name: String description of task
 	#	due_date_offset: Number of days from today that
 	#					this task will be due.
-	def create_task(self,task_name,due_date_offset):
+	def create_task(self,task_name,section_name,due_date_offset):
 		due_date = self.today + datetime.timedelta(days=due_date_offset)
 		due_date = str(due_date)[0:10]
-		self.client.tasks.create_in_workspace(self.wksp_id,{'name':task_name,'due_on':due_date, 'projects': [self.proj_id]})
+		section_id = self.get_section_id(section_name)
+		self.client.tasks.create_in_workspace(self.wksp_id,{'name':task_name,'due_on':due_date, 'projects': [self.proj_id],'assignee':'me','memberships':[{'project':self.proj_id,'section':section_id}]})
 
 	# Get details associated with an Asana task by it's ID
 	def get_task_details(self,task_id):
 		return self.client.tasks.find_by_id(task_id)
+		
+	# Extracts a list of open (incomplete) tasks in the current
+	# project.
+	def get_open_tasks(self):
+		task_list = self.client.tasks.find_all({'project':self.proj_id})
+		open_list=[]
+		for task in task_list:
+			det = self.get_task_details(task['id'])
+			if det['completed']==False:
+				open_list.append(det)
+		return open_list
 	
 	# Deletes any and all asana tasks within the
 	# project defined within the session having
@@ -67,3 +85,12 @@ class Session:
 					new_due_date = str(new_due_date)[0:10]
 					self.client.tasks.update(task['id'],{'due_on':new_due_date})
 			
+	# Archives tasks that have been completed for a while
+	# Archived tasks to be stored in csv files/database for
+	# reporting/analysis
+	#
+	# Archiving also will help ensure reasonable run-time over time
+	# to keep number of tasks the Session methods will have 
+	# to search through low
+	def archive_old_tasks(self):
+		pass
