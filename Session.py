@@ -105,3 +105,23 @@ class Session:
 	# to search through low
 	def archive_old_tasks(self):
 		pass
+		
+		
+	# Retrieves any open (incomplete) tasks which are past-due
+	# Returns both the list of tasks as well as the count as
+	# a tuple.
+	#
+	#
+	def get_past_due_tasks(self):
+		tasks = self.client.tasks.find_all({'project':self.proj_id})
+		past_due_tasks = []
+		
+		for task in tasks:
+			det = self.get_task_details(task['id'])
+			if det['completed']==False and det['due_on'] is not None:
+				due_date = datetime.datetime.strptime(det['due_on'],'%Y-%m-%d')
+				past_due = due_date < self.today
+				if past_due:
+					past_due_tasks.append(task)
+		
+		return (past_due_tasks,len(past_due_tasks))
