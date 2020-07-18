@@ -3,3 +3,4 @@
 *config.json
 test_script.py
 asana_dailies.py
+__pycache__*
