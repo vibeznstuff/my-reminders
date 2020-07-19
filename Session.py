@@ -2,6 +2,7 @@ import asana
 import datetime
 import random
 import json
+import pandas as pd
 
 # Session object for performing CRUD operations on your
 # Asana project.
@@ -27,6 +28,10 @@ class Session:
         self.proj_name = session["project_name"]
         self.late_threshold = session["late_threshold"]  # In days
         self.today = datetime.datetime.now()
+        try:
+            self.sheets_url = session["sheets_url"]
+        except:
+            self.sheets_url = None
 
         workspace = [
             x
@@ -47,21 +52,40 @@ class Session:
         section = [x for x in sections if x["name"].upper() == section_name.upper()][0]
         return section["gid"]
 
+    
+    # Get list of users in workspace
+    def get_user_gid(self, user_name):
+        all_users = self.client.users.get_users({"workspace": self.wksp_id})
+
+        for user in all_users:
+            if user['name'].upper() == user_name.upper():
+                return user['gid']
+
+        print("User with user_name {} was not found in workspace.".format(user_name))
+        return None
+        
+
     # Creates an asana task with a due date
     # 	task_name: String description of task
     # 	due_date_offset: Number of days from today that
     # 					this task will be due.
-    def create_task(self, task_name, section_name, due_date_offset):
+    def create_task(self, task_name, section_name, due_date_offset, user_name):
         due_date = self.today + datetime.timedelta(days=due_date_offset)
         due_date = str(due_date)[0:10]
         section_id = self.get_section_id(section_name)
+
+        user_gid = self.get_user_gid(user_name)
+
+        if user_gid is None:
+            raise ValueError("Could not find user name {} in workspace".format(user_name))
+
         self.client.tasks.create_in_workspace(
             self.wksp_id,
             {
                 "name": task_name,
                 "due_on": due_date,
                 "projects": [self.proj_id],
-                "assignee": "me",
+                "assignee": user_gid,
                 "memberships": [{"project": self.proj_id, "section": section_id}],
             },
         )
@@ -138,4 +162,37 @@ class Session:
                     past_due_tasks.append(task)
 
         return (past_due_tasks, len(past_due_tasks))
+
+    
+    def load_tasks_from_google_sheets(self):
+
+        tasks = pd.read_csv(self.sheets_url).to_dict('records')
+        weekday = datetime.datetime.today().weekday()
+
+        # Given actual weekday, resolve day_of_week to be the next week day
+        # in order to create tasks for the following day tonight
+        if weekday == 0:
+            day_of_week = 'TUESDAY'
+        elif weekday == 1:
+            day_of_week = 'WEDNESDAY'
+        elif weekday == 2:
+            day_of_week = 'THURSDAY'
+        elif weekday == 3:
+            day_of_week = 'FRIDAY'
+        elif weekday == 4:
+            day_of_week = 'SATURDAY'
+        elif weekday == 5:
+            day_of_week = 'SUNDAY'
+        elif weekday == 6:
+            day_of_week = 'MONDAY'
+
+        for task in tasks:
+            if task['frequency'].upper() == 'DAILY':
+                self.create_task(task['task_name'], task['section'], 1, task['owner'])
+
+            if task['frequency'].upper() == 'WEEKLY':
+                if day_of_week == task['dow'].upper():
+                    self.create_task(task['task_name'], task['section'], 1, task['owner'])
+
+
 
