@@ -188,11 +188,15 @@ class Session:
 
         for task in tasks:
             if task['frequency'].upper() == 'DAILY':
-                self.create_task(task['task_name'], task['section'], 1, task['owner'])
+                self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
 
             if task['frequency'].upper() == 'WEEKLY':
                 if day_of_week == task['dow'].upper():
-                    self.create_task(task['task_name'], task['section'], 1, task['owner'])
+                    self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
+
+            if task['frequency'].upper() == 'WEEKDAY':
+                if day_of_week not in ('SATURDAY', 'SUNDAY'):
+                    self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
 
 
 
