@@ -149,15 +149,26 @@ class Session:
     # a tuple.
     #
     #
-    def get_past_due_tasks(self):
+    def get_past_due_tasks(self, user_name=None):
         tasks = self.client.tasks.find_all({"project": self.proj_id})
         past_due_tasks = []
 
         for task in tasks:
             det = self.get_task_details(task["gid"])
-            if det["completed"] == False and det["due_on"] is not None:
+            assignee_id = det['assignee']['gid']
+            if user_name is None:
+                right_user = True
+            else:
+                if assignee_id == self.get_user_gid(user_name):
+                    right_user = True
+                else:
+                    right_user = False
+        
+            if det["completed"] == False and det["due_on"] is not None and right_user:
                 due_date = datetime.datetime.strptime(det["due_on"], "%Y-%m-%d")
-                past_due = due_date < self.today
+                today = datetime.datetime(self.today.year, self.today.month, self.today.day)
+
+                past_due = due_date < today
                 if past_due:
                     past_due_tasks.append(task)
 
@@ -172,19 +183,19 @@ class Session:
         # Given actual weekday, resolve day_of_week to be the next week day
         # in order to create tasks for the following day tonight
         if weekday == 0:
-            day_of_week = 'TUESDAY'
-        elif weekday == 1:
-            day_of_week = 'WEDNESDAY'
-        elif weekday == 2:
-            day_of_week = 'THURSDAY'
-        elif weekday == 3:
-            day_of_week = 'FRIDAY'
-        elif weekday == 4:
-            day_of_week = 'SATURDAY'
-        elif weekday == 5:
-            day_of_week = 'SUNDAY'
-        elif weekday == 6:
             day_of_week = 'MONDAY'
+        elif weekday == 1:
+            day_of_week = 'TUESDAY'
+        elif weekday == 2:
+            day_of_week = 'WEDNESDAY'
+        elif weekday == 3:
+            day_of_week = 'THURSDAY'
+        elif weekday == 4:
+            day_of_week = 'FRIDAY'
+        elif weekday == 5:
+            day_of_week = 'SATURDAY'
+        elif weekday == 6:
+            day_of_week = 'SUNDAY'
 
         for task in tasks:
             if task['frequency'].upper() == 'DAILY':
