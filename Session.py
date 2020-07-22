@@ -175,9 +175,22 @@ class Session:
         return (past_due_tasks, len(past_due_tasks))
 
     
-    def load_tasks_from_google_sheets(self):
+    def load_tasks_from_google_sheets(self, pause_threshold=None):
 
-        tasks = pd.read_csv(self.sheets_url).to_dict('records')
+        pause_users = []
+
+        df = pd.read_csv(self.sheets_url)
+
+        if pause_threshold is not None:
+            distinct_users = list(df['owner'].unique())
+
+            for user in distinct_users:
+                past_due_count = self.get_past_due_tasks(user)[1]
+                if past_due_count >= pause_threshold:
+                    pause_users.append(user)
+
+
+        tasks = df.to_dict('records')
         weekday = datetime.datetime.today().weekday()
 
         # Given actual weekday, resolve day_of_week to be the next week day
@@ -198,16 +211,17 @@ class Session:
             day_of_week = 'SUNDAY'
 
         for task in tasks:
-            if task['frequency'].upper() == 'DAILY':
-                self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
-
-            if task['frequency'].upper() == 'WEEKLY':
-                if day_of_week == task['dow'].upper():
+            if task['owner'] not in pause_users:
+                if task['frequency'].upper() == 'DAILY':
                     self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
 
-            if task['frequency'].upper() == 'WEEKDAY':
-                if day_of_week not in ('SATURDAY', 'SUNDAY'):
-                    self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
+                if task['frequency'].upper() == 'WEEKLY':
+                    if day_of_week == task['dow'].upper():
+                        self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
+
+                if task['frequency'].upper() == 'WEEKDAY':
+                    if day_of_week not in ('SATURDAY', 'SUNDAY'):
+                        self.create_task(task['task_name'], task['section'].title(), 1, task['owner'])
 
 
 
