@@ -1,5 +1,6 @@
 import asana
 import datetime
+from datetime import timedelta
 import random
 import json
 import pandas as pd
@@ -168,7 +169,7 @@ class Session:
                 due_date = datetime.datetime.strptime(det["due_on"], "%Y-%m-%d")
                 today = datetime.datetime(self.today.year, self.today.month, self.today.day)
 
-                past_due = due_date < today
+                past_due = due_date < (today + timedelta(days=-1)) # TODO: Fix this, bandaid for lightsail timezone
                 if past_due:
                     past_due_tasks.append(task)
 
